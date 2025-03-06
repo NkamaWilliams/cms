@@ -3,7 +3,7 @@ import { AuthRequest } from "../utils/interfaces";
 import prisma from "../prismaClient"
 import { ComplaintStatus } from "@prisma/client";
 
-export const createComplain = async (req: AuthRequest, res: Response) => {
+export const createComplaint = async (req: AuthRequest, res: Response) => {
     const { title, courseId, type, details } = req.body;
     try {
         const studentId = req.user?.id ?? ""; //AuthMiddleware should prevent the empty string from being used
@@ -100,5 +100,48 @@ export const editComplaint = async (req: AuthRequest, res: Response) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({message: "An error occured while trying to edit complaint"});
+    }
+}
+
+export const resolveComplaint = async (req: AuthRequest, res: Response) => {
+    const { complaintId } = req.body;
+
+    try{
+        const userId = req.user?.id ?? "";
+        const userRole = req.user?.role.toLowerCase() ?? "";
+
+        if (userRole != "lecturer") {
+            res.status(403).json({message: "Access denied. Only lecturers can resolve complaints"});
+            return;
+        }
+        
+        const complaint = await prisma.complaint.findUnique({
+            where: {id: complaintId}, 
+            include: {
+                course: {
+                    include: {lecturers: true}
+                }
+            }
+        });
+
+        let lecturers = complaint?.course.lecturers.filter(lecturer => lecturer.id == userId)
+        if (!lecturers || lecturers.length < 1){
+            res.status(403).json({message: "Access denied. Only lecturers of the associated course can resolve it"});
+            return;
+        }
+
+        const resolvedComplaint = await prisma.complaint.update({
+            where: {
+                id: complaintId
+            },
+            data: {
+                status: ComplaintStatus.RESOLVED
+            }
+        });
+
+        res.status(200).json({data: resolvedComplaint, message: "Complaint resolved successfully"});
+    } catch (err) {
+        console.error("Error occured resolving complaint:", err);
+        res.status(500).json({message: "An error occured while trying to resolve the complaint"});
     }
 }

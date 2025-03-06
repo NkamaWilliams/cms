@@ -31,4 +31,12 @@ const authenticateLecturer = (req: AuthRequest, res: Response, next: NextFunctio
     next();
 }
 
-export {authenticateUser, authenticateLecturer}
+const authenticateStudent = (req: AuthRequest, res: Response, next: NextFunction) => {
+    if (req?.user?.role.toLowerCase() != "student"){
+        res.status(403).json({message: "Access denied, only students can perform this operation"});
+        return;
+    }
+    next();
+}
+
+export {authenticateUser, authenticateLecturer, authenticateStudent}

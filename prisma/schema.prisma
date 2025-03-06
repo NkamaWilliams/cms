@@ -21,6 +21,7 @@ model Student {
   password  String
   courses   Course[] @relation("StudentCourses")
   complaints Complaint[]
+  responses Response[]
   createdAt DateTime @default(now())
 }
 
@@ -30,6 +31,7 @@ model Lecturer {
   email     String   @unique
   password  String
   courses   Course[] @relation("LecturerCourses")
+  responses Response[]
   createdAt DateTime @default(now())
 }
 
@@ -61,9 +63,13 @@ model Response {
   id          String   @id @default(cuid())
   complaint   Complaint @relation(fields: [complaintId], references: [id])
   complaintId String
-  submittedBy String // Can be Student or Lecturer ID
+  studentId   String?
+  lecturerId  String? 
   comment     String
-  createdAt   DateTime @default(now())
+
+  student     Student?   @relation(fields: [studentId], references: [id])
+  lecturer    Lecturer?  @relation(fields: [lecturerId], references: [id])
+  createdAt   DateTime   @default(now())
 }
 
 enum ComplaintStatus{
