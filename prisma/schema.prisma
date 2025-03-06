@@ -1,0 +1,72 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Student {
+  id        String   @id @default(cuid())
+  name      String
+  matric    String   @unique
+  email     String   @unique
+  password  String
+  courses   Course[] @relation("StudentCourses")
+  complaints Complaint[]
+  createdAt DateTime @default(now())
+}
+
+model Lecturer {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  courses   Course[] @relation("LecturerCourses")
+  createdAt DateTime @default(now())
+}
+
+model Course {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  students  Student[] @relation("StudentCourses")
+  lecturers Lecturer[] @relation("LecturerCourses")
+
+  complaints Complaint[]
+  createdAt  DateTime @default(now())
+}
+
+model Complaint {
+  id        String   @id @default(cuid())
+  title     String
+  student   Student  @relation(fields: [studentId], references: [id])
+  studentId String
+  course    Course   @relation(fields: [courseId], references: [id])
+  courseId  String
+  type      String
+  status    ComplaintStatus
+  details   String
+  responses Response[]
+  createdAt DateTime @default(now())
+}
+
+model Response {
+  id          String   @id @default(cuid())
+  complaint   Complaint @relation(fields: [complaintId], references: [id])
+  complaintId String
+  submittedBy String // Can be Student or Lecturer ID
+  comment     String
+  createdAt   DateTime @default(now())
+}
+
+enum ComplaintStatus{
+  PENDING
+  RESOLVED
+}
