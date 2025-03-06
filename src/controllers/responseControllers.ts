@@ -1,6 +1,7 @@
 import { Response } from "express"
 import { AuthRequest } from "../utils/interfaces"
 import prisma from "../prismaClient"
+import { ComplaintStatus } from "@prisma/client";
 
 export const addResponse = async (req: AuthRequest, res: Response) => {
     const {comment, complaintId} = req.body;
@@ -11,6 +12,11 @@ export const addResponse = async (req: AuthRequest, res: Response) => {
         let complaint = await prisma.complaint.findUnique({where: {id: complaintId}});
         if (!complaint) {
             res.status(404).json({message: "Complaint provided does not exist"});
+            return;
+        }
+
+        if(complaint.status == ComplaintStatus.RESOLVED) {
+            res.status(403).json({message: "Complaint has been resolved. No new response can be added"});
             return;
         }
 
