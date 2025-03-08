@@ -2,6 +2,7 @@ import { Response, Request } from "express"
 import { AuthRequest } from "../utils/interfaces";
 import prisma from "../prismaClient"
 import { ComplaintStatus } from "@prisma/client";
+import { sendEmail } from "../utils/mailer";
 
 export const createComplaint = async (req: AuthRequest, res: Response) => {
     const { title, courseId, type, details } = req.body;
@@ -19,8 +20,27 @@ export const createComplaint = async (req: AuthRequest, res: Response) => {
                 type,
                 details,
                 status: ComplaintStatus.PENDING,
+            },
+            include: {
+                course: true
             }
         });
+
+        const lecturers = await prisma.lecturer.findMany({
+            where: {
+                courses: {
+                    some: {id: courseId}
+                }
+            },
+        });
+        
+        await Promise.all(lecturers.map(async (lecturer) => {
+            await sendEmail(
+                lecturer.email, 
+                `A new complaint has been lodged for a course you teach!`, 
+                `New Complaint Made For Course - ${complaint.course.name}`
+            );
+        }));        
 
         res.status(201).json({data: complaint, message: "Complaint lodged successfully"});
     } catch (err) {
@@ -93,7 +113,8 @@ export const editComplaint = async (req: AuthRequest, res: Response) => {
                 title,
                 details,
                 type
-            }
+            },
+            include: {course: true}
         });
 
         res.status(200).json({data: updatedComplaint, message: "Complaint edited successfully"});
@@ -138,6 +159,17 @@ export const resolveComplaint = async (req: AuthRequest, res: Response) => {
                 status: ComplaintStatus.RESOLVED
             }
         });
+        if (complaint){
+            await Promise.all(complaint?.course.lecturers.map(async (lecturer) => {
+                await sendEmail(lecturer.email, "A Complaint Has Been Resolved", 
+                    `Your complaint: ${complaint.title} has been marked as resolved!`);
+            }));
+        }
+
+        let creator = await prisma.student.findUnique({where: {id: complaint?.studentId}});
+        if (creator){
+            await sendEmail(creator?.email, "A Complaint Has Been Resolved", `The complaint titled: ${complaint?.title}, has been resolved`);
+        }
 
         res.status(200).json({data: resolvedComplaint, message: "Complaint resolved successfully"});
     } catch (err) {
