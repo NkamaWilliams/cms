@@ -38,6 +38,7 @@ model Lecturer {
 model Course {
   id        String    @id @default(cuid())
   name      String    @unique
+  code      String    @unique
   students  Student[] @relation("StudentCourses")
   lecturers Lecturer[] @relation("LecturerCourses")
 

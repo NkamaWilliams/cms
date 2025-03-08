@@ -2,22 +2,23 @@ import { Response, Request } from "express"
 import prisma from "../prismaClient";
 
 export const createCourse = async (req: Request, res: Response) => {
-    const { name } = req.body;
+    const { name, code } = req.body;
     try {
-        const existingCourse = await prisma.course.findMany({
+        const existingCourse = await prisma.course.findUnique({
             where: {
-                name
+                code
             }
         });
 
-        if (existingCourse.length > 0) {
-            res.status(400).json({message: "Course with given name already exists"});
+        if (existingCourse) {
+            res.status(400).json({message: "Course with given code already exists"});
             return;
         }
 
         const course = await prisma.course.create({
             data: {
-                name
+                name,
+                code
             }
         });
 

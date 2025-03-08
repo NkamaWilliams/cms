@@ -21,8 +21,9 @@ export const registerStudent = async (req: Request, res: Response) => {
     const { name, email, password, courseIds } = req.body;
 
     try {
+        const existingLecturer = await prisma.lecturer.findUnique({where: {email}});
         const existingStudent = await prisma.student.findUnique({where: {email}});
-        if (existingStudent) {
+        if (existingStudent || existingLecturer) {
             res.status(400).json({message: "Email already in use"});
             return;
         }
@@ -55,17 +56,29 @@ export const registerStudent = async (req: Request, res: Response) => {
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        const student = await prisma.student.create({data: {
-            name,
-            email,
-            password: hashedPassword,
-            matric,
-            courses: {
-                connect: courseIds.map((id:string) => ({id}))
+        const student = await prisma.student.create(
+            {
+                data: {
+                    name,
+                    email,
+                    password: hashedPassword,
+                    matric,
+                    courses: {
+                        connect: courseIds.map((id:string) => ({id}))
+                    }
+                },
+                select: {
+                    id: true,
+                    name: true, 
+                    email: true,
+                    matric: true
+                }
             }
-        }});
+        );
 
-        res.status(201).json({data: student, message: "Student registered successfully!"});        
+        const token = generateJwt(student.id, "STUDENT");
+
+        res.status(201).json({data: student, message: "Student registered successfully!", token});        
     } catch(err) {
         console.error(err)
         res.status(500).json({message: "An error occured while registering student"});
@@ -77,8 +90,9 @@ export const registerLecturer = async (req: Request, res: Response) => {
     const { name, email, password, courseIds } = req.body;
 
     try {
+        const existingStudent = await prisma.student.findUnique({where: {email}});
         const existingLecturer = await prisma.lecturer.findUnique({where: {email}});
-        if (existingLecturer) {
+        if (existingLecturer || existingStudent) {
             res.status(400).json({message: "Email already in use"});
             return;
         }
@@ -102,16 +116,25 @@ export const registerLecturer = async (req: Request, res: Response) => {
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        const lecturer = await prisma.lecturer.create({data: {
-            name,
-            email,
-            password: hashedPassword,
-            courses: {
-                connect: courseIds.map((id:string) => ({id}))
+        const lecturer = await prisma.lecturer.create({
+            data: {
+                name,
+                email,
+                password: hashedPassword,
+                courses: {
+                    connect: courseIds.map((id:string) => ({id}))
+                }
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true
             }
-        }});
+        });
 
-        res.status(201).json({data: lecturer, message: "Lecturer registered successfully!"});
+        const token = generateJwt(lecturer.id, "LECTURER");
+
+        res.status(201).json({data: lecturer, message: "Lecturer registered successfully!", token});
     } catch(err) {
         console.error(err)
         res.status(500).json({message: "An error occured while registering lecturer"})
