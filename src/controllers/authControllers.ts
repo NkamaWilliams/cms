@@ -110,8 +110,8 @@ export const registerLecturer = async (req: Request, res: Response) => {
             return;
         }
 
-        if (validCourses.length < 1 || validCourses.length > 3){
-            res.status(400).json({message: "Length of course ids provided must be between 1 and 3"});
+        if (validCourses.length < 1 || validCourses.length > 5){
+            res.status(400).json({message: "Length of course ids provided must be between 1 and 5"});
             return;
         }
 
