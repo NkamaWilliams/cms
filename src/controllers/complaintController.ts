@@ -53,7 +53,7 @@ export const getAllComplaints = async (req: AuthRequest, res: Response) => {
     try{
         const userId = req.user?.id
         const allComplaints = req.user?.role.toLowerCase() == "student" ?
-            await prisma.complaint.findMany({ where: {studentId: userId} }) : 
+            await prisma.complaint.findMany({ where: {course: {students: {some: {id: userId}}}} }) : 
             await prisma.complaint.findMany({where: {course: {lecturers: {some: {id: userId}}}}});
 
         res.status(200).json({data: allComplaints, message: "Complaints fetched successfully"});

@@ -71,7 +71,8 @@ export const registerStudent = async (req: Request, res: Response) => {
                     id: true,
                     name: true, 
                     email: true,
-                    matric: true
+                    matric: true,
+                    courses: true
                 }
             }
         );
@@ -128,7 +129,8 @@ export const registerLecturer = async (req: Request, res: Response) => {
             select: {
                 id: true,
                 name: true,
-                email: true
+                email: true,
+                courses: true
             }
         });
 
@@ -148,14 +150,14 @@ export const signIn = async (req: Request, res: Response) => {
     try {
         let user = null
         if (role.toUpperCase() == "STUDENT"){
-            const isStudent = await prisma.student.findUnique({where: {email}});
+            const isStudent = await prisma.student.findUnique({where: {email}, include: {courses: true}});
             if (!isStudent){
                 res.status(400).json({message: "No student with given email found!"});
                 return;
             }
             user = isStudent;
         } else if (role.toUpperCase() == "LECTURER") {
-            const isLecturer = await prisma.lecturer.findUnique({where: {email}});
+            const isLecturer = await prisma.lecturer.findUnique({where: {email}, include: {courses: true}});
             if (!isLecturer){
                 res.status(400).json({message: "No lecturer with given email found!"});
                 return;
@@ -173,7 +175,7 @@ export const signIn = async (req: Request, res: Response) => {
         }
 
         res.status(200).json({
-            data: {id: user.id, email: user.email, name: user.name, createdAt: user.createdAt}, 
+            data: {id: user.id, email: user.email, name: user.name, createdAt: user.createdAt, courses: user.courses}, 
             token: generateJwt(user.id, role), 
             message: "User signer in successfully"}
         )
