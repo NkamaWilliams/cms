@@ -53,7 +53,7 @@ model Complaint {
   studentId String
   course    Course   @relation(fields: [courseId], references: [id])
   courseId  String
-  type      String
+  type      String?
   status    ComplaintStatus
   details   String
   responses Response[]
