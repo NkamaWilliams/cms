@@ -12,6 +12,13 @@ export const createComplaint = async (req: AuthRequest, res: Response) => {
             res.status(400).json({message: "Invalid request. Ensure all necessary fields are provided"});
             return;
         }
+        const course = await prisma.course.findUnique({
+            where: {id: courseId}
+        });
+        if (!course){
+            res.status(400).json({message: "Course provided does not exist!"});
+            return;
+        }
         const complaint = await prisma.complaint.create({
             data: {
                 title,
@@ -19,7 +26,7 @@ export const createComplaint = async (req: AuthRequest, res: Response) => {
                 courseId,
                 type,
                 details,
-                status: ComplaintStatus.PENDING,
+                status: ComplaintStatus.SUBMITTED,
             },
             include: {
                 course: true
@@ -49,6 +56,7 @@ export const createComplaint = async (req: AuthRequest, res: Response) => {
     }
 }
 
+//Gets all complaints relevant to a user (based on the courses they teach or take)
 export const getAllComplaints = async (req: AuthRequest, res: Response) => {
     try{
         const userId = req.user?.id
@@ -175,5 +183,46 @@ export const resolveComplaint = async (req: AuthRequest, res: Response) => {
     } catch (err) {
         console.error("Error occured resolving complaint:", err);
         res.status(500).json({message: "An error occured while trying to resolve the complaint"});
+    }
+}
+
+export const markComplaintAsPending = async (req: AuthRequest, res: Response) => {
+    //Middleware used to prevent anyone but lecturers from accessing this
+    const { complaintId } = req.body;
+    try {
+        const user = req.user;
+        const complaint = await prisma.complaint.findUnique({
+            where: {id: complaintId},
+            include: {course: true}
+        });
+        if (!complaint){
+            res.status(404).json({message: "Provided complaint does not exist!"});
+            return;
+        }
+        if (complaint.status == ComplaintStatus.PENDING) {
+            res.status(400).json({message: "Complaint already set to pending!"});
+            return;
+        }
+        const isCourseLecturer = await prisma.lecturer.findFirst({
+            where: {
+                id: user?.id,
+                courses: {
+                    some: {id: complaint?.courseId}
+                }
+            }
+        });
+        if (!isCourseLecturer) {
+            res.status(403).json({message: "Access denied. You do not teach this course!"});
+            return;
+        }
+        const updatedComplaint = await prisma.complaint.update({
+            where: {id: complaint.id},
+            data: {status: ComplaintStatus.PENDING}
+        });
+
+        res.status(200).json({data: updatedComplaint, message: "Status updated successfully!"});
+    } catch (err) {
+        console.error("Error occured updating complaint status:",err)
+        res.status(500).json({message: "An error occured updating complaint status to pending!"});
     }
 }
