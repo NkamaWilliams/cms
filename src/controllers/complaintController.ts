@@ -80,8 +80,8 @@ export const getComplaintById = async (req: AuthRequest, res: Response) => {
             }
         });
 
-        if (!complaint){
-            res.status(400).json({message: "Requested complaint does not exist"});
+        if (complaint === null){
+            res.status(404).json({message: "Requested complaint does not exist"});
             return;
         }
 
@@ -100,11 +100,21 @@ export const editComplaint = async (req: AuthRequest, res: Response) => {
             return;
         }
 
+        if (!title && !details && !type) {
+            res.status(400).json({ message: "At least one field must be updated" });
+            return;
+        }
+
         const userId = req.user.id;
         const complaint = await prisma.complaint.findUnique({ where: { id: complaintId } });
 
         if (!complaint) {
-            res.status(400).json({message: "Complaint not found"});
+            res.status(404).json({message: "Complaint not found"});
+            return;
+        }
+
+        if (complaint.status == ComplaintStatus.RESOLVED) {
+            res.status(403).json({message: "Access denied. Resolved complaints cannot be edited"});
             return;
         }
 
@@ -224,5 +234,46 @@ export const markComplaintAsPending = async (req: AuthRequest, res: Response) =>
     } catch (err) {
         console.error("Error occured updating complaint status:",err)
         res.status(500).json({message: "An error occured updating complaint status to pending!"});
+    }
+}
+
+export const deleteComplaint = async (req: AuthRequest, res: Response) => {
+    const { complaintId } = req.body;
+    try{
+        if (req.user?.role.toLowerCase() == "lecturer") {
+            res.status(403).json({message: "Access Denied! Only students can delete complaints"});
+            return;
+        }
+        const userId = req.user?.id ?? "";
+        const user = await prisma.student.findUnique({
+            where: {id: userId}
+        });
+        if (!user){
+            res.status(404).json({message: "User does not exist in the database"});
+            return;
+        }
+        const complaint = await prisma.complaint.findUnique({
+            where: {id: complaintId}
+        });
+        if (!complaint){
+            res.status(404).json({message: "Complaint does not exist in the database"});
+            return;
+        }
+        if (complaint.studentId != user.id){
+            res.status(403).json({message: "Forbidden! Only creators of complaints can delete them!"});
+            return;
+        }
+        const deletedComplaint = await prisma.complaint.delete({
+            where: {id: complaint.id}
+        });
+
+        if (!deletedComplaint){
+            throw new Error("Failed to delete complaint");
+        }
+
+        res.status(200).json({message: "Complaint deleted successfully!"});
+    } catch (err){
+        console.error("Error occured deleting complaint:", err);
+        res.status(500).json({message: "Error occured while deleting complaint!"});
     }
 }
