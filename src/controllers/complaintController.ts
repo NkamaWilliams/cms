@@ -61,8 +61,14 @@ export const getAllComplaints = async (req: AuthRequest, res: Response) => {
     try{
         const userId = req.user?.id
         const allComplaints = req.user?.role.toLowerCase() == "student" ?
-            await prisma.complaint.findMany({ where: {course: {students: {some: {id: userId}}}} }) : 
-            await prisma.complaint.findMany({where: {course: {lecturers: {some: {id: userId}}}}});
+            await prisma.complaint.findMany({ 
+                where: {course: {students: {some: {id: userId}}}},
+                include: {course: true} 
+            }) : 
+            await prisma.complaint.findMany({
+                where: {course: {lecturers: {some: {id: userId}}}},
+                include: {course: true}
+            });
 
         res.status(200).json({data: allComplaints, message: "Complaints fetched successfully"});
     } catch(err) {
@@ -75,9 +81,8 @@ export const getComplaintById = async (req: AuthRequest, res: Response) => {
     const { complaintId } = req.params;
     try{
         const complaint = await prisma.complaint.findUnique({
-            where: {
-                id: complaintId
-            }
+            where: { id: complaintId },
+            include: { course: true }
         });
 
         if (complaint === null){
@@ -227,7 +232,8 @@ export const markComplaintAsPending = async (req: AuthRequest, res: Response) =>
         }
         const updatedComplaint = await prisma.complaint.update({
             where: {id: complaint.id},
-            data: {status: ComplaintStatus.PENDING}
+            data: {status: ComplaintStatus.PENDING},
+            include: {course: true}
         });
 
         res.status(200).json({data: updatedComplaint, message: "Status updated successfully!"});
