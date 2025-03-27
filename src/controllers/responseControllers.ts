@@ -8,7 +8,9 @@ export const addResponse = async (req: AuthRequest, res: Response) => {
     const {comment, complaintId} = req.body;
     try{
         //AuthenticateUser middleware should prevent this from being an empty string
-        let userId = req.user?.id ?? ""; 
+        let user = req.user?.role == "student" ? 
+                    await prisma.student.findUnique({where: {id: req.user.id}, include: {courses: true}}) :
+                    await prisma.lecturer.findUnique({where: {id: req.user?.id}, include: {courses: true}});
 
         let complaint = await prisma.complaint.findUnique({where: {id: complaintId}, include: {student: true}});
         if (!complaint) {
@@ -21,18 +23,23 @@ export const addResponse = async (req: AuthRequest, res: Response) => {
             return;
         }
 
+        if (!user || !user?.courses.find(course => course.id == complaint.courseId)){
+            res.status(403).json({message: "Access denied! User has no relation to this course!"});
+            return;
+        }
+
         let response = req.user?.role.toLowerCase() == "student" ? await prisma.response.create({
             data: {
                 comment,
                 complaintId,
-                studentId: userId
+                studentId: user?.id
             },
             include: {student: true, lecturer: true}
         }) : await prisma.response.create({
             data: {
                 comment,
                 complaintId,
-                lecturerId: userId
+                lecturerId: user?.id
             },
             include: {student: true, lecturer: true}
         });
