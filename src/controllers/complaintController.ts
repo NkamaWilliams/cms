@@ -218,23 +218,41 @@ export const markComplaintAsPending = async (req: AuthRequest, res: Response) =>
             res.status(400).json({message: "Complaint already set to pending!"});
             return;
         }
-        const isCourseLecturer = await prisma.lecturer.findFirst({
+        const lecturers = await prisma.lecturer.findMany({
             where: {
-                id: user?.id,
                 courses: {
                     some: {id: complaint?.courseId}
                 }
             }
         });
-        if (!isCourseLecturer) {
+
+        const actingLecturer = lecturers.find(lecturer => lecturer.id == user?.id)
+        if (!actingLecturer) {
             res.status(403).json({message: "Access denied. You do not teach this course!"});
             return;
         }
+
+        
         const updatedComplaint = await prisma.complaint.update({
             where: {id: complaint.id},
             data: {status: ComplaintStatus.PENDING},
             include: {course: true}
         });
+        
+        await Promise.all(lecturers.map( async lecturer => {
+            await sendEmail(
+                lecturer.email, 
+                `A complaint for a course you teach is now being looked into!`, 
+                `Complaint Titled: ${updatedComplaint.title} is now being looked into by ${actingLecturer.name}.`
+            )
+        }))
+        
+        const complaintCreator = await prisma.student.findUnique({where: {id: updatedComplaint.studentId}})
+        await sendEmail(
+            complaintCreator?.email ?? "",
+            `A complaint for a course you teach is now being looked into!`, 
+            `Complaint Titled: ${updatedComplaint.title} is now being looked into by ${actingLecturer.name}.`
+        )
 
         res.status(200).json({data: updatedComplaint, message: "Status updated successfully!"});
     } catch (err) {

@@ -149,14 +149,14 @@ export const signIn = async (req: Request, res: Response) => {
 
     try {
         let user = null
-        if (role.toUpperCase() == "STUDENT"){
+        if (role.toLowerCase() == "student"){
             const isStudent = await prisma.student.findUnique({where: {email}, include: {courses: true}});
             if (!isStudent){
                 res.status(400).json({message: "No student with given email found!"});
                 return;
             }
             user = isStudent;
-        } else if (role.toUpperCase() == "LECTURER") {
+        } else if (role.toLowerCase() == "lecturer") {
             const isLecturer = await prisma.lecturer.findUnique({where: {email}, include: {courses: true}});
             if (!isLecturer){
                 res.status(400).json({message: "No lecturer with given email found!"});
