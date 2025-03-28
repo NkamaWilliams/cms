@@ -57,22 +57,22 @@ export const getMyCourses = async (req: AuthRequest, res: Response) => {
 }
 
 export const editCourses = async (req: AuthRequest, res: Response) => {
-    const { courses } = req.body
+    const { courseIds } = req.body
     try {
         const userId = req.user?.id as string;
         const userRole = req.user?.role.toLowerCase() as string;
 
-        if (!Array.isArray(courses)) {
+        if (!Array.isArray(courseIds)) {
             res.status(400).json({ message: "Courses must be an array of course IDs" });
             return
         }
 
         // Validate course IDs exist
         const validCourses = await prisma.course.findMany({
-            where: { id: { in: courses } },
+            where: { id: { in: courseIds } },
         });
 
-        if (validCourses.length !== courses.length) {
+        if (validCourses.length !== courseIds.length) {
             res.status(400).json({ message: "One or more course IDs are invalid" });
             return
         }
@@ -82,13 +82,13 @@ export const editCourses = async (req: AuthRequest, res: Response) => {
         if (userRole === "student") {
             updatedUser = await prisma.student.update({
                 where: { id: userId },
-                data: { courses: { set: courses.map((id) => ({ id })) } },
+                data: { courses: { set: courseIds.map((id) => ({ id })) } },
                 include: { courses: true },
             });
         } else if (userRole === "lecturer") {
             updatedUser = await prisma.lecturer.update({
                 where: { id: userId },
-                data: { courses: { set: courses.map((id) => ({ id })) } },
+                data: { courses: { set: courseIds.map((id) => ({ id })) } },
                 include: { courses: true },
             });
         }
