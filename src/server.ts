@@ -5,6 +5,7 @@ import authRoutes from "./routes/authRoutes";
 import courseRoutes from "./routes/courseRoutes";
 import complaintRoutes from "./routes/complaintRoutes";
 import responseRoutes from "./routes/responseRoutes";
+import accountRoutes from "./routes/accountRoutes"
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ app.use("/auth", authRoutes);
 app.use("/course", courseRoutes);
 app.use("/complaint", complaintRoutes);
 app.use("/response", responseRoutes);
+app.use("/account", accountRoutes)
 
 const PORT = process.env.port ?? 5000;
 app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));

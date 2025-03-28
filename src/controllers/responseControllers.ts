@@ -77,7 +77,7 @@ export const getAllResponses = async (req: AuthRequest, res: Response) => {
 
     try {
         //AuthenticateUser middleware should prevent this from being an empty string
-        const userId = req.user?.id ?? "";
+        const userId = req.user?.id as string;
         const userRole = req.user?.role.toLowerCase() ?? ""
 
         const complaint = await prisma.complaint.findUnique({where: {id: complaintId}});

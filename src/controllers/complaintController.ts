@@ -7,7 +7,7 @@ import { sendEmail } from "../utils/mailer";
 export const createComplaint = async (req: AuthRequest, res: Response) => {
     const { title, courseId, type, details } = req.body;
     try {
-        const studentId = req.user?.id ?? ""; //AuthMiddleware should prevent the empty string from being used
+        const studentId = req.user?.id as string; //AuthMiddleware should prevent the empty string from being used
         if (!title || !courseId || !type || !details){
             res.status(400).json({message: "Invalid request. Ensure all necessary fields are provided"});
             return;
@@ -268,14 +268,7 @@ export const deleteComplaint = async (req: AuthRequest, res: Response) => {
             res.status(403).json({message: "Access Denied! Only students can delete complaints"});
             return;
         }
-        const userId = req.user?.id ?? "";
-        const user = await prisma.student.findUnique({
-            where: {id: userId}
-        });
-        if (!user){
-            res.status(404).json({message: "User does not exist in the database"});
-            return;
-        }
+        const userId = req.user?.id as string;
         const complaint = await prisma.complaint.findUnique({
             where: {id: complaintId}
         });
@@ -283,7 +276,7 @@ export const deleteComplaint = async (req: AuthRequest, res: Response) => {
             res.status(404).json({message: "Complaint does not exist in the database"});
             return;
         }
-        if (complaint.studentId != user.id){
+        if (complaint.studentId != userId){
             res.status(403).json({message: "Forbidden! Only creators of complaints can delete them!"});
             return;
         }
