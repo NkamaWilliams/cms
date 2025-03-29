@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken"
 import prisma from "../prismaClient"
 
+const nameRegex = /^[a-zA-Z\s]{5,}$/
+
 //Create JWT Token for user
 const generateJwt = (id: string, role: string) => {
     const secret = process.env.JWT_SECRET;
@@ -48,6 +50,12 @@ export const registerStudent = async (req: Request, res: Response) => {
 
         const studentCount = await prisma.student.count();
         const matric = `${new Date().getFullYear()}-${(studentCount + 1).toString().padStart(6, "0")}`
+
+        const validName = nameRegex.test(name);
+        if (!validName){
+            res.status(400).json({message: "Invalid name provided. Names must contain only letters and must be at least 5 characters long!"});
+            return;
+        }
 
         const validPassword = /^(?=.*[a-zA-Z])(?=.*\d)[a-zA-Z0-9.]{8,}$/.test(password)
         if (!validPassword){
