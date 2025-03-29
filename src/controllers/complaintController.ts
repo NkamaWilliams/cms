@@ -250,7 +250,7 @@ export const markComplaintAsPending = async (req: AuthRequest, res: Response) =>
         const complaintCreator = await prisma.student.findUnique({where: {id: updatedComplaint.studentId}})
         await sendEmail(
             complaintCreator?.email ?? "",
-            `A complaint for a course you teach is now being looked into!`, 
+            `A complaint you made is now being looked into!`, 
             `Complaint Titled: ${updatedComplaint.title} is now being looked into by ${actingLecturer.name}.`
         )
 
